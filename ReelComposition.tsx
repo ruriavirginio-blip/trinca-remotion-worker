@@ -8,13 +8,14 @@ import {
   useVideoConfig,
   Video,
 } from "remotion";
+import { useMemo } from "react";
 import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { createTikTokStyleCaptions, type Caption, type TikTokPage } from "@remotion/captions";
 
 const { fontFamily: ANTON } = loadAnton();
 const { fontFamily: INTER } = loadInter();
 
-// ——— Sistema de marca TRINCA RV21 ———
 const GOLD = "#E7B84B";
 const GOLD_SOFT = "#F4D27A";
 const INK = "#08080A";
@@ -37,23 +38,10 @@ export interface ReelProps {
 }
 
 const Vignette: React.FC = () => (
-  <AbsoluteFill
-    style={{
-      background:
-        "radial-gradient(120% 75% at 50% 42%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.32) 78%, rgba(0,0,0,0.7) 100%)",
-      pointerEvents: "none",
-    }}
-  />
+  <AbsoluteFill style={{ background: "radial-gradient(120% 75% at 50% 42%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.3) 78%, rgba(0,0,0,0.7) 100%)", pointerEvents: "none" }} />
 );
-
 const BottomScrim: React.FC = () => (
-  <AbsoluteFill
-    style={{
-      background:
-        "linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,0,0,0.5) 78%, rgba(0,0,0,0.82) 100%)",
-      pointerEvents: "none",
-    }}
-  />
+  <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.8) 100%)", pointerEvents: "none" }} />
 );
 
 const TopBar: React.FC = () => {
@@ -66,42 +54,14 @@ const TopBar: React.FC = () => {
       <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 6, background: "rgba(255,255,255,0.12)" }}>
         <div style={{ width: `${progress * 100}%`, height: "100%", background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})` }} />
       </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 34,
-          left: 40,
-          right: 40,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          opacity: intro,
-          transform: `translateY(${(1 - intro) * -12}px)`,
-        }}
-      >
-        <div style={{ fontFamily: ANTON, fontSize: 30, letterSpacing: 2, color: WHITE }}>
-          TRINCA <span style={{ color: GOLD }}>RV21</span>
-        </div>
-        <div
-          style={{
-            fontFamily: INTER,
-            fontWeight: 700,
-            fontSize: 19,
-            letterSpacing: 1.5,
-            color: INK,
-            background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})`,
-            padding: "6px 14px",
-            borderRadius: 100,
-          }}
-        >
-          DIA 1 / 21
-        </div>
+      <div style={{ position: "absolute", top: 34, left: 40, right: 40, display: "flex", alignItems: "center", justifyContent: "space-between", opacity: intro, transform: `translateY(${(1 - intro) * -12}px)` }}>
+        <div style={{ fontFamily: ANTON, fontSize: 30, letterSpacing: 2, color: WHITE }}>TRINCA <span style={{ color: GOLD }}>RV21</span></div>
+        <div style={{ fontFamily: INTER, fontWeight: 700, fontSize: 19, letterSpacing: 1.5, color: INK, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})`, padding: "6px 14px", borderRadius: 100 }}>DIA 1 / 21</div>
       </div>
     </AbsoluteFill>
   );
 };
 
-// Gancho de abertura (punch line desenhada) — só nos primeiros segundos
 const OpeningHook: React.FC<{ gancho: string }> = ({ gancho }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -110,24 +70,11 @@ const OpeningHook: React.FC<{ gancho: string }> = ({ gancho }) => {
   const kicker = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 12 });
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "flex-start", padding: "0 56px", opacity: out }}>
-      <div
-        style={{
-          fontFamily: INTER, fontWeight: 800, fontSize: 22, letterSpacing: 4, color: GOLD,
-          textTransform: "uppercase", marginBottom: 16, opacity: kicker,
-          transform: `translateY(${(1 - kicker) * 14}px)`, textShadow: "0 2px 10px rgba(0,0,0,0.85)",
-        }}
-      >
-        A verdade que ninguém te contou
-      </div>
+      <div style={{ fontFamily: INTER, fontWeight: 800, fontSize: 22, letterSpacing: 4, color: GOLD, textTransform: "uppercase", marginBottom: 16, opacity: kicker, transform: `translateY(${(1 - kicker) * 14}px)`, textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>A verdade que ninguém te contou</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
         {words.map((w, i) => {
           const s = spring({ frame: frame - i * 2.2, fps, config: { damping: 18, mass: 0.5 }, durationInFrames: 14 });
-          return (
-            <span key={i} style={{
-              fontFamily: ANTON, fontSize: 88, lineHeight: 1.0, color: WHITE, opacity: s,
-              transform: `translateY(${(1 - s) * 40}px)`, textShadow: "0 4px 18px rgba(0,0,0,0.95)", display: "inline-block",
-            }}>{w}</span>
-          );
+          return <span key={i} style={{ fontFamily: ANTON, fontSize: 88, lineHeight: 1.0, color: WHITE, opacity: s, transform: `translateY(${(1 - s) * 40}px)`, textShadow: "0 4px 18px rgba(0,0,0,0.95)", display: "inline-block" }}>{w}</span>;
         })}
       </div>
       <div style={{ marginTop: 20, height: 8, width: 200, background: `linear-gradient(90deg, ${GOLD}, ${GOLD_SOFT})`, borderRadius: 100 }} />
@@ -135,46 +82,28 @@ const OpeningHook: React.FC<{ gancho: string }> = ({ gancho }) => {
   );
 };
 
-// Legenda KARAOKÊ sincronizada (estilo TikTok): palavra ativa em dourado
-const KaraokeCaptions: React.FC<{ captions: Word[] }> = ({ captions }) => {
+// Página de legenda TikTok — palavra ativa em CAIXA dourada, tempo ABSOLUTO (sincronismo correto)
+const CaptionPage: React.FC<{ page: TikTokPage }> = ({ page }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const nowMs = (frame / fps) * 1000;
-
-  // agrupa em "páginas" de até 3 palavras
-  const PER = 3;
-  const pages: { words: Word[]; startMs: number; endMs: number }[] = [];
-  for (let i = 0; i < captions.length; i += PER) {
-    const slice = captions.slice(i, i + PER);
-    if (slice.length) pages.push({ words: slice, startMs: slice[0].startMs, endMs: slice[slice.length - 1].endMs });
-  }
-  // estende o fim de cada página até o início da próxima (evita flicker)
-  for (let i = 0; i < pages.length - 1; i++) pages[i].endMs = Math.max(pages[i].endMs, pages[i + 1].startMs - 1);
-
-  const page = pages.find((p) => nowMs >= p.startMs && nowMs <= p.endMs);
-  if (!page) return null;
-
-  const since = (nowMs - page.startMs) / 1000;
-  const pop = spring({ frame: since * fps, fps, config: { damping: 200 }, durationInFrames: 8 });
-
+  const absMs = page.startMs + (frame / fps) * 1000;
+  const pop = spring({ frame, fps, config: { damping: 16, mass: 0.5 }, durationInFrames: 9 });
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: "0 70px 430px" }}>
-      <div
-        style={{
-          display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 18px",
-          opacity: pop, transform: `translateY(${(1 - pop) * 20}px) scale(${0.96 + pop * 0.04})`,
-        }}
-      >
-        {page.words.map((w, i) => {
-          const active = nowMs >= w.startMs && nowMs <= w.endMs + 60;
+    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: "0 64px 440px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px 14px", opacity: pop, transform: `translateY(${(1 - pop) * 24}px) scale(${0.92 + pop * 0.08})` }}>
+        {page.tokens.map((t, i) => {
+          const active = t.fromMs <= absMs && t.toMs > absMs;
           return (
             <span key={i} style={{
-              fontFamily: ANTON, fontSize: 74, lineHeight: 1.05, letterSpacing: 0.5,
-              color: active ? GOLD : WHITE, textTransform: "uppercase",
-              transform: active ? "scale(1.06)" : "scale(1)",
-              textShadow: "0 4px 16px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9)",
-              transition: "none", display: "inline-block",
-            }}>{w.text.trim()}</span>
+              fontFamily: ANTON, fontSize: 72, lineHeight: 1.0, letterSpacing: 0.5, textTransform: "uppercase",
+              color: active ? INK : WHITE,
+              background: active ? `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})` : "transparent",
+              padding: active ? "4px 16px" : "4px 0", borderRadius: 14,
+              transform: active ? "scale(1.07)" : "scale(1)",
+              boxShadow: active ? "0 6px 20px rgba(0,0,0,0.45)" : "none",
+              textShadow: active ? "none" : "0 4px 14px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9)",
+              display: "inline-block",
+            }}>{t.text.trim()}</span>
           );
         })}
       </div>
@@ -182,51 +111,64 @@ const KaraokeCaptions: React.FC<{ captions: Word[] }> = ({ captions }) => {
   );
 };
 
-// End card branded — SEM URL crua (CTA = micro-compromisso "COMENTA EU QUERO")
 const EndCard: React.FC<{ gatilho: string; cta: string }> = ({ gatilho, cta }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fade = interpolate(frame, [0, 14], [0, 0.93], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const pop = spring({ frame: frame - 6, fps, config: { damping: 14, mass: 0.6 }, durationInFrames: 22 });
   const chip = spring({ frame: frame - 22, fps, config: { damping: 12, mass: 0.5 }, durationInFrames: 20 });
+  const pulse = 1 + Math.sin(frame / 7) * 0.02;
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ background: INK, opacity: fade }} />
       <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 60px", textAlign: "center" }}>
         <div style={{ transform: `scale(${0.92 + pop * 0.08})`, opacity: pop }}>
-          <div style={{ fontFamily: INTER, fontWeight: 800, fontSize: 24, letterSpacing: 4, color: GOLD, textTransform: "uppercase", marginBottom: 24 }}>
-            Vagas limitadas · 1ª turma
-          </div>
-          <div style={{ fontFamily: ANTON, fontSize: 100, lineHeight: 0.96, color: WHITE, textTransform: "uppercase" }}>
-            {gatilho}
-          </div>
+          <div style={{ fontFamily: INTER, fontWeight: 800, fontSize: 24, letterSpacing: 4, color: GOLD, textTransform: "uppercase", marginBottom: 24 }}>Vagas limitadas · 1ª turma</div>
+          <div style={{ fontFamily: ANTON, fontSize: 100, lineHeight: 0.96, color: WHITE, textTransform: "uppercase" }}>{gatilho}</div>
         </div>
-        <div
-          style={{
-            marginTop: 46, opacity: chip, transform: `translateY(${(1 - chip) * 22}px) scale(${0.9 + chip * 0.1})`,
-            fontFamily: ANTON, fontSize: 46, letterSpacing: 1, color: INK,
-            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})`, padding: "20px 46px", borderRadius: 18,
-            textTransform: "uppercase",
-          }}
-        >
+        <div style={{ marginTop: 46, opacity: chip, transform: `translateY(${(1 - chip) * 22}px) scale(${chip * pulse})`, display: "flex", alignItems: "center", gap: 16, fontFamily: ANTON, fontSize: 46, letterSpacing: 1, color: INK, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})`, padding: "20px 46px", borderRadius: 18, textTransform: "uppercase", boxShadow: "0 10px 36px rgba(231,184,75,0.4)" }}>
           {cta}
+          <span style={{ display: "inline-block", width: 0, height: 0, borderLeft: "16px solid transparent", borderRight: "16px solid transparent", borderTop: `22px solid ${INK}` }} />
         </div>
-        <div style={{ marginTop: 30, opacity: chip, fontFamily: ANTON, fontSize: 26, letterSpacing: 3, color: "rgba(255,255,255,0.5)" }}>
-          TRINCA <span style={{ color: GOLD }}>RV21</span> · DIA 1 DE 21
-        </div>
+        <div style={{ marginTop: 30, opacity: chip, fontFamily: ANTON, fontSize: 26, letterSpacing: 3, color: "rgba(255,255,255,0.5)" }}>TRINCA <span style={{ color: GOLD }}>RV21</span> · DIA 1 DE 21</div>
       </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
-export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho, cta = "Comenta EU QUERO 👇", captions = [], audioSrc }) => {
+export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho, cta = "Comenta a segunda", captions = [], audioSrc }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
   const hookDur = Math.round(fps * 2.8);
   const endDur = Math.round(fps * 3.6);
   const endStart = durationInFrames - endDur;
-  const zoom = interpolate(frame, [0, durationInFrames], [1.0, 1.06], { extrapolateRight: "clamp" });
+  const msToFrame = (ms: number) => Math.round((ms / 1000) * fps);
+
+  // Páginas TikTok (oficial) — sincronismo por tempo absoluto
+  const pages = useMemo(() => {
+    if (!captions || captions.length === 0) return [] as TikTokPage[];
+    const typed: Caption[] = captions.map((w) => ({
+      text: w.text.trim(),
+      startMs: w.startMs,
+      endMs: w.endMs,
+      timestampMs: (w.startMs + w.endMs) / 2,
+      confidence: 1,
+    }));
+    return createTikTokStyleCaptions({ captions: typed, combineTokensWithinMilliseconds: 1100 }).pages;
+  }, [captions]);
+
+  // Punch-in zoom: leve "kick" a cada troca de legenda (mudança visual ~1-2s)
+  const nowMs = (frame / fps) * 1000;
+  let pageStartMs = 0;
+  for (const p of pages) {
+    if (p.startMs <= nowMs) pageStartMs = p.startMs;
+    else break;
+  }
+  const sincePage = frame - msToFrame(pageStartMs);
+  const kick = interpolate(sincePage, [0, 7], [0.022, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const base = interpolate(frame, [0, durationInFrames], [1.0, 1.045], { extrapolateRight: "clamp" });
+  const zoom = base + (frame < endStart ? kick : 0);
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
@@ -240,19 +182,22 @@ export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho
       <BottomScrim />
       <TopBar />
 
-      {/* Gancho de abertura */}
       <Sequence from={4} durationInFrames={hookDur}>
         <OpeningHook gancho={gancho} />
       </Sequence>
 
-      {/* Legenda karaokê sincronizada (depois do gancho, até o end card) */}
-      {captions.length > 0 ? (
-        <Sequence from={hookDur} durationInFrames={Math.max(1, endStart - hookDur)}>
-          <KaraokeCaptions captions={captions} />
-        </Sequence>
-      ) : null}
+      {/* Legendas TikTok sincronizadas — uma Sequence por página, tempo real */}
+      {pages.map((page, i) => {
+        const startF = msToFrame(page.startMs);
+        const durF = Math.max(1, msToFrame(page.durationMs));
+        if (startF >= endStart) return null;
+        return (
+          <Sequence key={i} from={startF} durationInFrames={Math.min(durF, endStart - startF)}>
+            <CaptionPage page={page} />
+          </Sequence>
+        );
+      })}
 
-      {/* End card */}
       <Sequence from={endStart} durationInFrames={endDur}>
         <EndCard gatilho={gatilho} cta={cta} />
       </Sequence>
