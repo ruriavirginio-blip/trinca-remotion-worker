@@ -31,7 +31,7 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/render', async (req, res) => {
-  const { videoUrl, gancho, gatilho, legenda, audioUrl, durationSeconds } = req.body;
+  const { videoUrl, gancho, gatilho, legenda, cta, captions, audioUrl, durationSeconds } = req.body;
 
   if (!videoUrl || !gancho || !gatilho) {
     return res.status(400).json({ error: 'videoUrl, gancho e gatilho sao obrigatorios' });
@@ -59,6 +59,8 @@ app.post('/render', async (req, res) => {
         gancho,
         gatilho,
         legenda,
+        cta: cta || 'Comenta EU QUERO 👇',
+        captions: Array.isArray(captions) ? captions : [],
         audioSrc: audioUrl,
       },
     });
@@ -81,6 +83,8 @@ app.post('/render', async (req, res) => {
         gancho,
         gatilho,
         legenda,
+        cta: cta || 'Comenta EU QUERO 👇',
+        captions: Array.isArray(captions) ? captions : [],
         audioSrc: audioUrl,
       },
     });

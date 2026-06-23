@@ -19,6 +19,8 @@ export const RemotionRoot: React.FC = () => {
         gancho: "",
         gatilho: "",
         legenda: "",
+        cta: "",
+        captions: [],
         audioSrc: undefined,
       }}
     />
