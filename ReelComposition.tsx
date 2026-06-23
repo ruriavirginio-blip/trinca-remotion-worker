@@ -65,6 +65,26 @@ const BottomScrim: React.FC = () => (
   <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0.8) 100%)", pointerEvents: "none" }} />
 );
 
+// Grão de filme (35mm) — turbulência animada, look cinematográfico premium
+const FilmGrain: React.FC = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ opacity: 0.07, mixBlendMode: "overlay", pointerEvents: "none" }}>
+      <svg width="1080" height="1920" style={{ width: "100%", height: "100%" }}>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed={frame % 73} stitchTiles="stitch" />
+        </filter>
+        <rect width="1080" height="1920" filter="url(#grain)" />
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+// Color grade quente + glow dourado sutil (faz "saltar" do feed)
+const WarmGrade: React.FC = () => (
+  <AbsoluteFill style={{ background: "radial-gradient(78% 58% at 50% 36%, rgba(231,184,75,0.10), rgba(0,0,0,0) 70%)", mixBlendMode: "soft-light", pointerEvents: "none" }} />
+);
+
 const TopBar: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -180,20 +200,25 @@ export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho
     else break;
   }
   const sincePage = frame - msToFrame(pageStartMs);
-  const kick = interpolate(sincePage, [0, 7], [0.02, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const inCaps = frame < endStart && frame > hookDur;
+  const kick = interpolate(sincePage, [0, 7], [0.022, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const base = interpolate(frame, [0, durationInFrames], [1.0, 1.045], { extrapolateRight: "clamp" });
-  const zoom = base + (frame < endStart && frame > hookDur ? kick : 0);
+  const zoom = base + (inCaps ? kick : 0);
+  // motion-blur leve no "snap" de cada legenda (cheio, sem multiplicar render)
+  const blurKick = inCaps ? interpolate(sincePage, [0, 5], [2.4, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
-      <AbsoluteFill style={{ transform: `scale(${zoom})` }}>
+      <AbsoluteFill style={{ transform: `scale(${zoom})`, filter: `contrast(1.09) saturate(1.16) brightness(1.02) blur(${blurKick}px)` }}>
         <Video src={videoSrc} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </AbsoluteFill>
 
       {audioSrc && <Audio src={audioSrc} volume={0.15} />}
 
+      <WarmGrade />
       <Vignette />
       <BottomScrim />
+      <FilmGrain />
       <TopBar />
 
       <Sequence from={4} durationInFrames={hookDur}>
