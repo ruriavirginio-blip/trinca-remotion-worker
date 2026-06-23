@@ -11,7 +11,6 @@ import {
 import { useMemo } from "react";
 import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
-import { createTikTokStyleCaptions, type Caption, type TikTokPage } from "@remotion/captions";
 
 const { fontFamily: ANTON } = loadAnton();
 const { fontFamily: INTER } = loadInter();
@@ -26,6 +25,11 @@ export interface Word {
   startMs: number;
   endMs: number;
 }
+interface Page {
+  words: Word[];
+  startMs: number;
+  endMs: number;
+}
 
 export interface ReelProps {
   videoSrc: string;
@@ -35,6 +39,23 @@ export interface ReelProps {
   cta?: string;
   captions?: Word[];
   audioSrc?: string;
+}
+
+// Agrupa palavras em páginas de até 3 (quebra em pausas) — estilo legenda dinâmica
+function buildPages(words: Word[]): Page[] {
+  const pages: Page[] = [];
+  let cur: Word[] = [];
+  for (let i = 0; i < words.length; i++) {
+    cur.push(words[i]);
+    const next = words[i + 1];
+    const gap = next ? next.startMs - words[i].endMs : 99999;
+    if (cur.length >= 3 || gap > 420 || !next) {
+      pages.push({ words: cur, startMs: cur[0].startMs, endMs: cur[cur.length - 1].endMs });
+      cur = [];
+    }
+  }
+  for (let i = 0; i < pages.length - 1; i++) pages[i].endMs = Math.max(pages[i].endMs, pages[i + 1].startMs - 1);
+  return pages;
 }
 
 const Vignette: React.FC = () => (
@@ -82,20 +103,24 @@ const OpeningHook: React.FC<{ gancho: string }> = ({ gancho }) => {
   );
 };
 
-// Página de legenda TikTok — palavra ativa em CAIXA dourada, tempo ABSOLUTO (sincronismo correto)
-const CaptionPage: React.FC<{ page: TikTokPage }> = ({ page }) => {
+// Legenda KARAOKÊ — tempo ABSOLUTO (renderizada direto, sem Sequence → sem atraso)
+const KaraokeCaptions: React.FC<{ pages: Page[]; hookMs: number; endMs: number }> = ({ pages, hookMs, endMs }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const absMs = page.startMs + (frame / fps) * 1000;
-  const pop = spring({ frame, fps, config: { damping: 16, mass: 0.5 }, durationInFrames: 9 });
+  const nowMs = (frame / fps) * 1000;
+  if (nowMs < hookMs || nowMs > endMs) return null;
+  const page = pages.find((p) => nowMs >= p.startMs && nowMs <= p.endMs);
+  if (!page) return null;
+  const since = nowMs - page.startMs;
+  const pop = spring({ frame: (since / 1000) * fps, fps, config: { damping: 16, mass: 0.5 }, durationInFrames: 8 });
   return (
     <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: "0 64px 440px" }}>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px 14px", opacity: pop, transform: `translateY(${(1 - pop) * 24}px) scale(${0.92 + pop * 0.08})` }}>
-        {page.tokens.map((t, i) => {
-          const active = t.fromMs <= absMs && t.toMs > absMs;
+        {page.words.map((w, i) => {
+          const active = nowMs >= w.startMs && nowMs <= w.endMs + 50;
           return (
             <span key={i} style={{
-              fontFamily: ANTON, fontSize: 72, lineHeight: 1.0, letterSpacing: 0.5, textTransform: "uppercase",
+              fontFamily: ANTON, fontSize: 74, lineHeight: 1.0, letterSpacing: 0.5, textTransform: "uppercase",
               color: active ? INK : WHITE,
               background: active ? `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})` : "transparent",
               padding: active ? "4px 16px" : "4px 0", borderRadius: 14,
@@ -103,7 +128,7 @@ const CaptionPage: React.FC<{ page: TikTokPage }> = ({ page }) => {
               boxShadow: active ? "0 6px 20px rgba(0,0,0,0.45)" : "none",
               textShadow: active ? "none" : "0 4px 14px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9)",
               display: "inline-block",
-            }}>{t.text.trim()}</span>
+            }}>{w.text.trim()}</span>
           );
         })}
       </div>
@@ -145,20 +170,9 @@ export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho
   const endStart = durationInFrames - endDur;
   const msToFrame = (ms: number) => Math.round((ms / 1000) * fps);
 
-  // Páginas TikTok (oficial) — sincronismo por tempo absoluto
-  const pages = useMemo(() => {
-    if (!captions || captions.length === 0) return [] as TikTokPage[];
-    const typed: Caption[] = captions.map((w) => ({
-      text: w.text.trim(),
-      startMs: w.startMs,
-      endMs: w.endMs,
-      timestampMs: (w.startMs + w.endMs) / 2,
-      confidence: 1,
-    }));
-    return createTikTokStyleCaptions({ captions: typed, combineTokensWithinMilliseconds: 1100 }).pages;
-  }, [captions]);
+  const pages = useMemo(() => (captions && captions.length ? buildPages(captions) : []), [captions]);
 
-  // Punch-in zoom: leve "kick" a cada troca de legenda (mudança visual ~1-2s)
+  // Punch-in: leve kick a cada troca de página de legenda
   const nowMs = (frame / fps) * 1000;
   let pageStartMs = 0;
   for (const p of pages) {
@@ -166,9 +180,9 @@ export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho
     else break;
   }
   const sincePage = frame - msToFrame(pageStartMs);
-  const kick = interpolate(sincePage, [0, 7], [0.022, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const kick = interpolate(sincePage, [0, 7], [0.02, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const base = interpolate(frame, [0, durationInFrames], [1.0, 1.045], { extrapolateRight: "clamp" });
-  const zoom = base + (frame < endStart ? kick : 0);
+  const zoom = base + (frame < endStart && frame > hookDur ? kick : 0);
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
@@ -186,17 +200,10 @@ export const ReelComposition: React.FC<ReelProps> = ({ videoSrc, gancho, gatilho
         <OpeningHook gancho={gancho} />
       </Sequence>
 
-      {/* Legendas TikTok sincronizadas — uma Sequence por página, tempo real */}
-      {pages.map((page, i) => {
-        const startF = msToFrame(page.startMs);
-        const durF = Math.max(1, msToFrame(page.durationMs));
-        if (startF >= endStart) return null;
-        return (
-          <Sequence key={i} from={startF} durationInFrames={Math.min(durF, endStart - startF)}>
-            <CaptionPage page={page} />
-          </Sequence>
-        );
-      })}
+      {/* Legenda em tempo absoluto (direto, sem offset) */}
+      {pages.length > 0 ? (
+        <KaraokeCaptions pages={pages} hookMs={(hookDur / fps) * 1000} endMs={(endStart / fps) * 1000} />
+      ) : null}
 
       <Sequence from={endStart} durationInFrames={endDur}>
         <EndCard gatilho={gatilho} cta={cta} />
