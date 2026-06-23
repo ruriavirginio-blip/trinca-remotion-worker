@@ -14,6 +14,16 @@ cloudinary.config({
 const app = express();
 app.use(express.json());
 
+// CORS: permite o cockpit (protocolorv.com.br) chamar o worker direto do navegador.
+// O render leva ~80-90s (acima do limite da Vercel), então o navegador é quem espera.
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.get('/health', (req, res) => {
